@@ -1,0 +1,303 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "VNetName": {
+           "type": "string",
+           "defaultValue":"VNet-Prod",
+           "metadata": {
+                "description": "Define the VNet Name"
+            }            
+        },
+        "VPNGatewayName": {
+               "type": "string",
+               "defaultValue":"Prod-GW",
+               "metadata": {
+                    "description": "Define the name for the Azure Virtual network gateway"
+                }
+        },
+        "VPNLocalGWOnPremPrefix": {
+               "type": "string",
+               "defaultValue":"10.0.1.0/24",
+               "metadata": {
+                    "description": "Define On-Prem VPN connection name"
+                }
+        },
+        "VPNOnPremGWIP": {
+               "type": "string",
+               "defaultValue":"1.2.3.4",
+               "metadata": {
+                    "description": "Define On-Prem VPN connection name"
+                }
+        },
+        "VPNLocalGWAWSPrefix": {
+               "type": "string",
+               "defaultValue":"10.3.0.0/16",
+               "metadata": {
+                    "description": "Define On-Prem VPN connection name"
+                }
+        },
+        "VPNAWSGWIP": {
+               "type": "string",
+               "defaultValue":"4.3.2.1",
+               "metadata": {
+                    "description": "Define On-Prem VPN connection name"
+                }
+        }        
+    },
+    "variables": {
+        "VNetName": "[concat('Demo-', parameters('VNetName'))]",
+        "VPNGatewayName":"[concat('Demo-', parameters('VPNGatewayName'))]",
+        "VPNGatewayPipName":"[concat('Demo-', parameters('VPNGatewayName'),'-Pip')]",
+        "VPNSharedKey":"VPNDemoSharedKey01",
+        "VPNLocalGWOnPrem": "[concat('Demo-', parameters('VPNGatewayName'),'-LNGW-OnPrem')]",
+        "VPNLocalGWOnPremPrefix":"[parameters('VPNLocalGWOnPremPrefix')]",
+        "VPNLocalGWOnPremGWIP":"[parameters('VPNOnPremGWIP')]",
+        "VPNConnectionOnPrem":"[concat('Demo-', parameters('VPNGatewayName'),'-Con-OnPrem')]",
+        "VPNLocalGWAWS": "[concat('Demo-', parameters('VPNGatewayName'),'-LNGW-AWS')]",
+        "VPNLocalGWAWSPrefix":"[parameters('VPNLocalGWAWSPrefix')]",
+        "VPNLocalGWAWSGWIP":"[parameters('VPNAWSGWIP')]",
+        "VPNConnectionAWS":"[concat('Demo-', parameters('VPNGatewayName'),'-Con-AWS')]",
+        "VMName":"[concat('Demo-', parameters('VPNGatewayName'),'-vm')]",
+        "VMNicName":"[concat('Demo-', parameters('VPNGatewayName'),'-nic')]"
+    },
+    "resources": [
+        {
+            "name": "[variables('VNetName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2018-08-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.2.0.0/16"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "GatewaySubnet",
+                        "properties": {
+                            "addressPrefix": "10.2.0.0/28"
+                        }
+                    },
+                    {
+                        "name": "Backend",
+                        "properties": {
+                            "addressPrefix": "10.2.1.0/24"
+                        }
+                    }
+                ]                
+            }
+        },  
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2019-11-01",
+            "name": "[variables('VPNGatewayPipName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "sku": {
+                "name": "Basic"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },      
+        {
+            "name": "[variables('VPNGatewayName')]",
+            "type": "Microsoft.Network/virtualNetworkGateways",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('VPNGatewayPipName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNetName'))]"
+            ],
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "vnetGatewayConfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNetName'), 'GatewaySubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('VPNGatewayPipName'))]"
+                            }
+                        }
+                    }
+                ],
+                "sku": {
+                    "name": "VpnGw1",
+                    "tier": "VpnGw1"
+                },
+                "gatewayType": "Vpn",
+                "vpnType": "RouteBased",
+                "enableBgp": false
+            }
+        },
+        {
+            "name": "[variables('VPNLocalGWOnPrem')]",
+            "type": "Microsoft.Network/localNetworkGateways",
+            "apiVersion": "2018-07-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "properties": {
+                "localNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VPNLocalGWOnPremPrefix')]"
+                    ]
+                },
+                "gatewayIpAddress": "[variables('VPNLocalGWOnPremGWIP')]"
+            }
+        },
+        {
+            "name": "[variables('VPNLocalGWAWS')]",
+            "type": "Microsoft.Network/localNetworkGateways",
+            "apiVersion": "2018-07-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "properties": {
+                "localNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VPNLocalGWAWSPrefix')]"
+                    ]
+                },
+                "gatewayIpAddress": "[variables('VPNLocalGWAWSGWIP')]"
+            }
+        },
+        {
+            "name": "[variables('VPNConnectionOnPrem')]",
+            "type": "Microsoft.Network/connections",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('VPNGatewayName'))]",
+                "[resourceId('Microsoft.Network/localNetworkGateways', variables('VPNLocalGWOnPrem'))]"
+            ],
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "properties": {
+                "virtualNetworkGateway1": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('VPNGatewayName'))]"
+                },
+                "localNetworkGateway2": {
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('VPNLocalGWOnPrem'))]"
+                },                
+                "connectionType": "IPsec",
+                "routingWeight": 0,
+                "sharedKey": "[variables('VPNSharedKey')]"
+            }
+        },
+        {
+            "name": "[variables('VPNConnectionAWS')]",
+            "type": "Microsoft.Network/connections",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('VPNGatewayName'))]",
+                "[resourceId('Microsoft.Network/localNetworkGateways', variables('VPNLocalGWAWS'))]"
+            ],
+            "tags": {
+                "env": "DemoFullMeshVPN"
+            },
+            "properties": {
+                "virtualNetworkGateway1": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', variables('VPNGatewayName'))]"
+                },
+                "localNetworkGateway2": {
+                    "id": "[resourceId('Microsoft.Network/localNetworkGateways', variables('VPNLocalGWAWS'))]"
+                },                
+                "connectionType": "IPsec",
+                "routingWeight": 0,
+                "sharedKey": "[variables('VPNSharedKey')]"
+            }
+        },                
+        {
+            "name": "[variables('VMNicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-08-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipConfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNetName'), 'Backend')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[variables('VMName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('VMNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_B1s"
+                },
+                "osProfile": {
+                    "computerName": "[variables('VMName')]",
+                    "adminUsername": "adminusername",
+                    "adminPassword": "Demo-FullMesh-VPN"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('VMName'), '_osdisc')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        },
+                        "diskSizeGB": 30
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('VMNicName'))]"
+                        }
+                    ]
+                }
+            }
+        }    
+    ],
+    "outputs":{
+        "networkInterface":{
+            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('VMNicName')),'2018-08-01')]",
+            "type": "object"
+        }
+    },
+    "functions": []
+}

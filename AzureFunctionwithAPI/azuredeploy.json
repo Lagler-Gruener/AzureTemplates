@@ -1,0 +1,250 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "appname": {
+            "type":"string",
+            "defaultValue":"functiontestdoka01"            
+        },
+        "publisherEmail": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "The email address of the owner of the service"
+            }
+        },
+        "publisherName": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "The name of the owner of the service"
+            }
+        },
+        "sku": {
+            "type": "string",
+            "allowedValues": [
+                "Developer",
+                "Standard",
+                "Premium"
+            ],
+            "defaultValue": "Developer",
+            "metadata": {
+                "description": "The pricing tier of this API Management service"
+            }
+        },
+        "skuCount": {
+            "type": "string",
+            "allowedValues": [
+                "1",
+                "2"
+            ],
+            "defaultValue": "1",
+            "metadata": {
+                "description": "The instance size of this API Management service."
+            }
+        }
+    },
+    "variables": {
+        "apiManagementServiceName": "[concat('apiservice', uniqueString(resourceGroup().id))]",
+        "storageaccountname":"[concat(parameters('appname'),'stracc')]",
+        "hostingPlanName":"[concat(parameters('appname'),'appsvcplan')]",
+        "appinsightname": "[concat(parameters('appname'), 'insight')]",
+        "functionname": "[concat(parameters('appname'),'function')]",
+        "functionAppId": "[resourceId('Microsoft.Web/sites', variables('functionname'))]"
+    },
+    "resources": [  
+
+        {
+            "name": "[variables('storageaccountname')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[variables('storageaccountname')]"
+            },
+            "properties": {
+                "accountType": "Standard_LRS"
+            }
+        }, 
+
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2018-02-01",
+            "name": "[variables('hostingPlanName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "reserved": false
+            },
+            "sku": {
+                "name": "Y1",
+                "tier": "Dynamic",
+                "size": "Y1",
+                "family": "Y",
+                "capacity": 0
+            },
+            "kind": "functionapp"
+        }, 
+
+        {
+              "apiVersion": "2015-08-01",
+              "type": "Microsoft.Web/sites",
+              "name": "[variables('functionname')]",
+              "location": "[resourceGroup().location]",
+              "kind": "functionapp",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageaccountname'))]"
+              ],
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+                "siteConfig": {
+                  "appSettings": [
+                    {
+                      "name": "AzureWebJobsDashboard",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageaccountname')), '2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+                    },
+                    {
+                      "name": "AzureWebJobsStorage",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageaccountname')), '2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+                    },
+                    {
+                      "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageaccountname')), '2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+                    },
+                    {
+                      "name": "WEBSITE_CONTENTSHARE",
+                      "value": "[toLower(variables('functionname'))]"
+                    },
+                    {
+                      "name": "FUNCTIONS_EXTENSION_VERSION",
+                      "value": "~3"
+                    },
+                    {
+                      "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                      "value": "[reference(resourceId('microsoft.insights/components/', variables('appinsightname')), '2015-05-01').InstrumentationKey]"
+                    },
+                    {
+                      "name": "FUNCTIONS_WORKER_RUNTIME",
+                      "value": "dotnet"
+                    },
+                    {
+                        "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+                        "value":"true"
+                    },
+                    {
+                        "name": "WEBSITE_RUN_FROM_PACKAGE",
+                        "value": "1"
+                    }
+                  ]
+                }
+              }
+        },
+
+        {
+            "apiVersion": "2015-05-01",
+            "name": "[variables('appinsightname')]",
+            "type": "microsoft.insights/components",
+            "location": "[resourceGroup().location]",
+            "tags": {},            
+            "properties": {
+                "ApplicationId": "[variables('appinsightname')]",
+                "Request_Source": "IbizaWebAppExtensionCreate"
+            }
+        },   
+
+        {
+            "type": "Microsoft.Web/sites/host/functionKeys",
+            "apiVersion": "2018-02-01",
+            "name": "[concat(variables('functionname'), '/default/apimanagement')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('functionname'))]"
+            ],
+                "properties": {
+                "name": "api-management"
+            }
+        },            
+
+
+        {
+            "apiVersion": "2017-03-01",
+            "name": "[variables('apiManagementServiceName')]",
+            "type": "Microsoft.ApiManagement/service",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "sku": {
+                "name": "[parameters('sku')]",
+                "capacity": "[parameters('skuCount')]"
+            },
+            "properties": {
+                "publisherEmail": "[parameters('publisherEmail')]",
+                "publisherName": "[parameters('publisherName')]"
+
+            }            
+        },
+
+        {
+            "type": "Microsoft.ApiManagement/service/properties",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(variables('apiManagementServiceName'), '/hlagler-demofunction-key')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', variables('apiManagementServiceName'))]",
+                "[resourceId('Microsoft.Web/sites', variables('functionname'))]"
+            ],
+            "properties": {
+                "displayName": "hlagler-demofunction-key",
+                "value": "[listkeys(concat(variables('functionAppId'), '/host/default/'),'2016-08-01').functionKeys.apimanagement]",
+                "tags": [
+                    "key",
+                    "function",
+                    "auto"
+                ],
+                "secret": true
+            }
+        },
+
+        {
+            "type": "Microsoft.ApiManagement/service/apis",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(variables('apiManagementServiceName'), '/hlagler-demofunction')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', variables('apiManagementServiceName'))]"
+            ],
+            "properties": {
+                "displayName": "hlagler-demofunction",
+                "apiRevision": "1",
+                "description": "Import from \"hlagler-demofunction\" Function App",
+                "subscriptionRequired": true,
+                "path": "test",
+                "protocols": [
+                    "https"
+                ],
+                "isCurrent": true
+            }
+        },
+
+        {
+            "type": "Microsoft.ApiManagement/service/backends",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(variables('apiManagementServiceName'), '/hlagler-demofunction')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', variables('apiManagementServiceName'))]"
+            ],
+            "properties": {
+                "description": "hlagler-demofunction",
+                "url": "[concat('https://',variables('functionname'),'.azurewebsites.net/api')]",
+                "protocol": "http",
+                "resourceId": "[concat('https://management.azure.com/subscriptions/', variables('functionAppId'))]",
+                "credentials": {
+                    "header": {
+                        "x-functions-key": [
+                            "{{hlagler-demofunction-key}}"
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {                
+    },
+    "functions": []
+}
