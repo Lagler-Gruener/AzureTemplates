@@ -1,0 +1,181 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vWANname": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Virtual WAN Name"
+            }
+        },
+        "Hub_Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Add the existing Azure Virtual WAN Name"
+            }
+        },
+        "Hub_Location": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Region for the first Hub"
+            },
+            "allowedValues": [
+                "EastAsia",
+                "EastUS2",
+                "WestEurope",
+                "AustraliaEast",
+                "UKSouth",
+                "WestUS2",
+                "FranceSouth",
+                "SouthAfricaWest"
+            ],
+            "defaultValue":"WestEurope"
+        },
+        "Deploy_P2SVPN": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "If you select true, a P2S VPN Gateway will be deployed (Azure AD authentication based) in each location."
+            }
+        },
+        "TenantID": {
+            "type": "string",
+            "metadata":{
+                "description": "If you want to deploy a P2S environment too, please assign you TenantID for the correct deployment."
+            }
+        },
+        "Hub_P2SvpnGatewayScaleUnit": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Scale Units for Point-to-Site (P2S) VPN Gateway in the first Hub"
+            }
+        },
+        "Hub_P2SAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure virtual WAN Hub Address space"
+            },            
+            "defaultValue":"10.5.3.0/24"
+        },
+        "Deploy_S2SVPN_Connection": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ]
+        }
+    },
+    "variables": {
+        "virtual_hub_cfg": {
+            "name": "[parameters('Hub_Name')]",
+            "Hub_P2SAddressPrefix": "[parameters('Hub_P2SAddressSpace')]"
+        }
+    },
+    "resources": [
+        //deploy P2S vpn
+        {
+            "condition":"[equals(parameters('Deploy_P2SVPN'),'true')]",
+            "type": "Microsoft.Network/vpnServerConfigurations",
+            "apiVersion": "2020-05-01",
+            "name": "[format('{0}_P2SvpnServerConfiguration', variables('virtual_hub_cfg').name)]",
+            "location": "[parameters('Hub_Location')]",
+            "dependsOn": [
+            ],
+            "properties": {
+                "vpnProtocols": [
+                    "OpenVPN"
+                ],
+                "vpnAuthenticationTypes": [
+                    "AAD"
+                ],
+                "aadAuthenticationParameters": {
+                    "aadAudience":"41b23e61-6c1e-4545-b367-cd054e0ed4b4",
+                    "aadIssuer": "[concat('https://sts.windows.net/', parameters('TenantID'), '/')]",
+                    "aadTenant": "[concat('https://login.microsoftonline.com/', parameters('TenantID'))]"
+                }
+            }
+        },
+        {
+            "condition":"[equals(parameters('Deploy_P2SVPN'),'true')]",
+            "type": "Microsoft.Network/p2sVpnGateways",
+            "apiVersion": "2020-05-01",
+            "name": "[format('{0}_P2Sgateway', variables('virtual_hub_cfg').name)]",
+            "location": "[parameters('Hub_Location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/vpnServerConfigurations', format('{0}_P2SvpnServerConfiguration', variables('virtual_hub_cfg').name))]"
+            ],
+            "properties": {
+                "virtualHub": {
+                    "id": "[resourceId('Microsoft.Network/virtualHubs', variables('virtual_hub_cfg').name)]"
+                },
+                "vpnServerConfiguration": {
+                    "id": "[resourceId('Microsoft.Network/vpnServerConfigurations', format('{0}_P2SvpnServerConfiguration', variables('virtual_hub_cfg').name))]"
+                },
+                "p2SConnectionConfigurations": [
+                    {
+                        "name": "Hub1_P2SConnectionConfigDefault",
+                        "properties": {
+                            "routingConfiguration": {
+                                "associatedRouteTable": {
+                                    "id": "[resourceId('Microsoft.Network/virtualHubs/hubRouteTables', variables('virtual_hub_cfg').name,'defaultRouteTable')]"
+                                },
+                                "propagatedRouteTables": {
+                                    "labels": [
+                                        "default"
+                                    ],
+                                    "ids": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/virtualHubs/hubRouteTables', variables('virtual_hub_cfg').name,'defaultRouteTable')]"
+                                        }
+                                    ]
+                                }
+                            },
+                            "vpnClientAddressPool": {
+                                "addressPrefixes": [
+                                    "[variables('virtual_hub_cfg').Hub_P2SAddressPrefix]"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "vpnGatewayScaleUnit": "[parameters('Hub_P2SvpnGatewayScaleUnit')]"
+            }
+        },
+        //add vpn connection
+        {
+            "condition":"[equals(parameters('Deploy_S2SVPN_Connection'),'true')]",
+            "type": "Microsoft.Network/vpnSites",
+            "apiVersion": "2020-05-01",
+            "name": "onpremvpnsite",
+            "location": "[parameters('Hub_Location')]",
+            "properties": {
+                "addressSpace": {
+                "addressPrefixes": [
+                    "10.20.0.0/24"
+                    ]
+                },
+                "bgpProperties": {
+                    "asn": 65010,
+                    "bgpPeeringAddress": "10.128.0.10",
+                    "peerWeight": 0
+                },
+                "deviceProperties": {
+                    "deviceVendor": "Microsoft",
+                    "deviceModel": "AzureVPNGateway",
+                    "linkSpeedInMbps": 10000
+                },
+                "ipAddress": "92.34.128.10",
+                "virtualWan": {
+                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                }                
+            }                        
+        }
+    ],
+    "outputs": {}
+}
