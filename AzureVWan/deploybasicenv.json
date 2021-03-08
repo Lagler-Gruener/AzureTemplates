@@ -522,7 +522,8 @@
             "name": "[format('{0}_P2Sgateway', variables('virtual_hub1_cfg').name)]",
             "location": "[parameters('hub1_location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/vpnServerConfigurations', format('{0}_P2SvpnServerConfiguration', variables('virtual_hub1_cfg').name))]"
+                "[resourceId('Microsoft.Network/vpnServerConfigurations', format('{0}_P2SvpnServerConfiguration', variables('virtual_hub1_cfg').name))]",
+                "[resourceId('Microsoft.Network/virtualHubs', variables('virtual_hub1_cfg').name)]"
             ],
             "properties": {
                 "virtualHub": {
@@ -591,7 +592,8 @@
             "name": "[format('{0}_P2Sgateway', variables('virtual_hub2_cfg').name)]",
             "location": "[parameters('hub1_location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/vpnServerConfigurations', format('{0}_P2SvpnServerConfiguration', variables('virtual_hub2_cfg').name))]"
+                "[resourceId('Microsoft.Network/vpnServerConfigurations', format('{0}_P2SvpnServerConfiguration', variables('virtual_hub2_cfg').name))]",
+                "[resourceId('Microsoft.Network/virtualHubs', variables('virtual_hub2_cfg').name)]"
             ],
             "properties": {
                 "virtualHub": {
