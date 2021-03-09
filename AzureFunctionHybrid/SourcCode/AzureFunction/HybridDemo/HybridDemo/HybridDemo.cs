@@ -22,7 +22,7 @@ namespace HybridDemo
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            HttpResponseMessage response = await HttpClient.GetAsync("http://localhost:5000/weatherforecast");
+            HttpResponseMessage response = await HttpClient.GetAsync("http://localapi:81/API/Values/Get");
             string body = await response.Content.ReadAsStringAsync();
             return new OkObjectResult(body);
         }
