@@ -23,6 +23,7 @@ namespace DemoAPI.Controllers
     public class ValuesController : ApiController
     {
         // GET api/values
+        [HttpGet]
         public List<Item> GetUsers()
         {
             DirectoryEntry rootDSE = new DirectoryEntry("LDAP://RootDSE");
@@ -94,6 +95,7 @@ namespace DemoAPI.Controllers
         }
 
         // GET api/values/5
+        [HttpGet]
         public List<Item> GetUser(string sAMAccountName)
         {
             List<Item> objectToSerialize = new List<Item>();
@@ -150,14 +152,17 @@ namespace DemoAPI.Controllers
         }
 
         // POST api/values
-        public string CreateUser([FromBody]Item value)
-        {
+        [ActionName("CreateUser")]
+        [HttpPost]
+        public string CreateUser([FromBody] Item value)
+        {            
             try
             {
                 PrincipalContext ctx = new PrincipalContext(ContextType.Domain, "demo.at", "adminuser", "H01g1280!!!!!!");
 
                 UserPrincipal user = new UserPrincipal(ctx);
 
+                user.DisplayName = value.sn + "," + value.givenName;
                 user.UserPrincipalName = value.userPrincipalName;
                 user.SamAccountName = value.sAMAccountName;
                 user.GivenName = value.givenName;
@@ -165,17 +170,19 @@ namespace DemoAPI.Controllers
                 user.Enabled = true;
                 user.ExpirePasswordNow();
                 user.Save();
-
+                
                 return "success";
 
             }
             catch (Exception ex)
             {
-                return ex.Message;
+                return "Error " + ex.Message;
             }
         }
 
-        // DELETE api/values/5
+        // POST api/values/5
+        [ActionName("DeleteUser")]
+        [HttpPost]
         public string DeleteUser([FromBody] Item value)
         {
             try

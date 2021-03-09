@@ -10,13 +10,14 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using System.Text;
 
+
 namespace DemoFunction
 {
-    public static class FunctionAddAction
+    public static class FunctionDeleteAction
     {
         private static readonly HttpClient HttpClient = new HttpClient();
 
-        [FunctionName("FunctionDemoAPI-AddAction")]
+        [FunctionName("FunctionDemoAPI-DeleteAction")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
@@ -26,26 +27,19 @@ namespace DemoFunction
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
             string sAMAccountName = data?.sAMAccountName;
-            string givenName = data?.givenName;
-            string sn = data?.sn;
-            string userPrincipalName = data?.userPrincipalName;
 
             log.LogInformation("Create body message:");
 
             var my_jsondata = new
             {
-                distinguishedName = "",
-                givenName = givenName,
-                sAMAccountName = sAMAccountName,
-                sn = sn,
-                userPrincipalName = userPrincipalName
+                sAMAccountName = sAMAccountName
             };
 
             var mycontent = JsonConvert.SerializeObject(my_jsondata);
 
-            log.LogInformation("Create new User:");
+            log.LogInformation("Delete User:");
 
-            HttpResponseMessage response  = await HttpClient.PostAsync("http://demodc01/API/Values/CreateUser", new StringContent(mycontent, Encoding.UTF8, "application/json"));
+            HttpResponseMessage response = await HttpClient.PostAsync("http://demodc01/API/Values/DeleteUser", new StringContent(mycontent, Encoding.UTF8, "application/json"));
 
             string body = await response.Content.ReadAsStringAsync();
             return new OkObjectResult(body);
