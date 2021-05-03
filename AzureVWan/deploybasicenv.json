@@ -39,6 +39,49 @@
             },            
             "defaultValue":"192.168.0.0/24"
         },
+        "Hub1_S2SvpnGatewayScaleUnit": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Scale Units for Site-to-Site (S2S) VPN Gateway in the first Hub"
+            }
+        },
+        "Hub1_Deploy_P2SVPN": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "If you select true, a P2S VPN Gateway will be deployed (Azure AD authentication based) in each location."
+            }
+        },
+        "Hub1_P2SvpnGatewayScaleUnit": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Scale Units for Point-to-Site (P2S) VPN Gateway in the first Hub"
+            }
+        },
+        "Hub1_P2SAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure virtual WAN Hub Address space"
+            },            
+            "defaultValue":"10.4.3.0/24"
+        },
+        "Hub1_Deploy_DemoVNet": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "If you select true, two VNets will be deployes and conencted in each location."
+            }            
+        },
         "Hub2_Location": {
             "type": "string",
             "metadata": {
@@ -70,40 +113,7 @@
             },            
             "defaultValue":"192.168.1.0/24"
         },
-        "Hub1_S2SvpnGatewayScaleUnit": {
-            "type": "int",
-            "defaultValue": 1,
-            "metadata": {
-                "description": "Scale Units for Site-to-Site (S2S) VPN Gateway in the first Hub"
-            }
-        },
-        "Hub2_S2SvpnGatewayScaleUnit": {
-            "type": "int",
-            "defaultValue": 1,
-            "metadata": {
-                "description": "Scale Units for Site-to-Site (S2S) VPN Gateway in the second Hub"
-            }
-        },
-        "Deploy_S2SVPN_Connections": {
-            "type": "string",
-            "defaultValue": "false",
-            "allowedValues": [
-                "true",
-                "false"
-            ]
-        },
-        "Deploy_DemoVNet": {
-            "type": "string",
-            "defaultValue": "false",
-            "allowedValues": [
-                "true",
-                "false"
-            ],
-            "metadata": {
-                "description": "If you select true, two VNets will be deployes and conencted in each location."
-            }            
-        },
-        "Deploy_P2SVPN": {
+        "Hub2_Deploy_P2SVPN": {
             "type": "string",
             "defaultValue": "false",
             "allowedValues": [
@@ -113,26 +123,13 @@
             "metadata": {
                 "description": "If you select true, a P2S VPN Gateway will be deployed (Azure AD authentication based) in each location."
             }
-        },
-        "TenantID": {
-            "type": "string",
-            "metadata":{
-                "description": "If you want to deploy a P2S environment too, please assign you TenantID for the correct deployment."
-            }
-        },
-        "Hub1_P2SvpnGatewayScaleUnit": {
+        },        
+        "Hub2_S2SvpnGatewayScaleUnit": {
             "type": "int",
             "defaultValue": 1,
             "metadata": {
-                "description": "Scale Units for Point-to-Site (P2S) VPN Gateway in the first Hub"
+                "description": "Scale Units for Site-to-Site (S2S) VPN Gateway in the second Hub"
             }
-        },
-        "Hub1_P2SAddressSpace": {
-            "type": "string",
-            "metadata": {
-                "description": "Azure virtual WAN Hub Address space"
-            },            
-            "defaultValue":"10.4.3.0/24"
         },
         "Hub2_P2SvpnGatewayScaleUnit": {
             "type": "int",
@@ -147,6 +144,23 @@
                 "description": "Azure virtual WAN Hub Address space"
             },            
             "defaultValue":"10.5.3.0/24"
+        },      
+        "Hub2_Deploy_DemoVNet": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "If you select true, two VNets will be deployes and conencted in each location."
+            }            
+        },
+        "TenantID": {
+            "type": "string",
+            "metadata":{
+                "description": "If you want to deploy a P2S environment too, please assign you TenantID for the correct deployment."
+            }
         }
     },
     "variables": {
@@ -266,68 +280,10 @@
                 }
             }
         },
-
-        //deploy S2S connections      
-        {
-            "condition":"[equals(parameters('Deploy_S2SVPN_Connections'),'true')]",
-            "type": "Microsoft.Network/vpnSites",
-            "apiVersion": "2020-05-01",
-            "name": "[format('{0}_S2SvpnCon_{1}', variables('virtual_hub1_cfg').name, parameters('hub1_Location'))]",
-            "location": "[parameters('hub1_Location')]",
-            "properties": {
-                "addressSpace": {
-                "addressPrefixes": [
-                    "1.2.3.0/24"
-                    ]
-                },
-                "bgpProperties": {
-                    "asn": 65010,
-                    "bgpPeeringAddress": "5.4.3.2",
-                    "peerWeight": 0
-                },
-                "deviceProperties": {
-                    "deviceVendor": "Microsoft",
-                    "deviceModel": "AzureVPNGateway",
-                    "linkSpeedInMbps": 100
-                },
-                "ipAddress": "1.2.3.4",
-                "virtualWan": {
-                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
-                }                
-            }                        
-        },
-        {
-            "condition":"[equals(parameters('Deploy_S2SVPN_Connections'),'true')]",
-            "type": "Microsoft.Network/vpnSites",
-            "apiVersion": "2020-05-01",
-            "name": "[format('{0}_S2SvpnCon_{1}', variables('virtual_hub2_cfg').name, parameters('hub2_Location'))]",
-            "location": "[parameters('hub1_Location')]",
-            "properties": {
-                "addressSpace": {
-                "addressPrefixes": [
-                    "1.2.3.0/24"
-                    ]
-                },
-                "bgpProperties": {
-                    "asn": 65010,
-                    "bgpPeeringAddress": "5.4.3.2",
-                    "peerWeight": 0
-                },
-                "deviceProperties": {
-                    "deviceVendor": "Microsoft",
-                    "deviceModel": "AzureVPNGateway",
-                    "linkSpeedInMbps": 100
-                },
-                "ipAddress": "1.2.3.4",
-                "virtualWan": {
-                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
-                }                
-            }                        
-        },
-
+                       
         //deploy demo vnet
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub1_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2020-05-01",
             "name": "[variables('vnet1_cfg').name]",
@@ -349,7 +305,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub1_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2020-05-01",
             "name": "[variables('vnet2_cfg').name]",
@@ -371,7 +327,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub2_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2020-05-01",
             "name": "[variables('vnet3_cfg').name]",
@@ -393,7 +349,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub2_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2020-05-01",
             "name": "[variables('vnet4_cfg').name]",
@@ -415,7 +371,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub1_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualHubs/hubVirtualNetworkConnections",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}/{1}_connection', variables('virtual_hub1_cfg').name, variables('vnet1_cfg').name)]",
@@ -434,7 +390,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub1_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualHubs/hubVirtualNetworkConnections",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}/{1}_connection', variables('virtual_hub1_cfg').name, variables('vnet2_cfg').name)]",
@@ -453,7 +409,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub2_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualHubs/hubVirtualNetworkConnections",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}/{1}_connection', variables('virtual_hub2_cfg').name, variables('vnet3_cfg').name)]",
@@ -472,7 +428,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_DemoVNet'),'true')]",
+            "condition":"[equals(parameters('Hub2_Deploy_DemoVNet'),'true')]",
             "type": "Microsoft.Network/virtualHubs/hubVirtualNetworkConnections",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}/{1}_connection', variables('virtual_hub2_cfg').name, variables('vnet4_cfg').name)]",
@@ -493,7 +449,7 @@
 
         //deploy P2S vpn
         {
-            "condition":"[equals(parameters('Deploy_P2SVPN'),'true')]",
+            "condition":"[equals(parameters('Hub1_Deploy_P2SVPN'),'true')]",
             "type": "Microsoft.Network/vpnServerConfigurations",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}_P2SvpnServerConfiguration', variables('virtual_hub1_cfg').name)]",
@@ -516,7 +472,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_P2SVPN'),'true')]",
+            "condition":"[equals(parameters('Hub1_Deploy_P2SVPN'),'true')]",
             "type": "Microsoft.Network/p2sVpnGateways",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}_P2Sgateway', variables('virtual_hub1_cfg').name)]",
@@ -563,7 +519,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_P2SVPN'),'true')]",
+            "condition":"[equals(parameters('Hub2_Deploy_P2SVPN'),'true')]",
             "type": "Microsoft.Network/vpnServerConfigurations",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}_P2SvpnServerConfiguration', variables('virtual_hub2_cfg').name)]",
@@ -586,7 +542,7 @@
             }
         },
         {
-            "condition":"[equals(parameters('Deploy_P2SVPN'),'true')]",
+            "condition":"[equals(parameters('Hub2_Deploy_P2SVPN'),'true')]",
             "type": "Microsoft.Network/p2sVpnGateways",
             "apiVersion": "2020-05-01",
             "name": "[format('{0}_P2Sgateway', variables('virtual_hub2_cfg').name)]",
