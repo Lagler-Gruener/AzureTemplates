@@ -1,0 +1,125 @@
+﻿@using MVCGrid.Web
+@{
+    ViewBag.Title = "DemoFunction";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<script type="text/javascript">
+    $(function () {
+        $('#btnreloadgrid').click(function () {
+            MVCGrid.reloadGrid('GridAllUsers');
+        });
+    });
+</script>
+
+
+@using (Html.BeginForm())
+{
+    <div style="text-align:left">
+        <div style="text-align:right">
+            @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+        </div>
+        <h1>Alle Benutzer</h1>
+        <div>
+            <div>
+                @Html.MVCGrid("GridAllUsers")
+            </div>
+        </div>
+    </div>
+}
+
+<hr />
+
+@using (Html.BeginForm("GetUser", "Home", FormMethod.Post))
+{
+<div style="text-align:left">
+    <div style="text-align:right">
+        @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+    </div>
+    <h1>Benutzer suchen</h1>
+    <div>
+        <table id="t01">
+            <tr>
+                <th>sAMAccountName</th>
+            </tr>
+            <td>
+                @Html.Editor("TextBoxRGName")
+            </td>
+        </table>
+    </div>
+    <button class="btn btn-success" id="btnreloadgrid">Get User</button>
+    <div style="padding-top:30px;">
+        <table id="t01" style="width:100%">
+            <tr>
+                <th>sAMAccountName</th>
+                <th>givenName</th>
+                <th>sn</th>
+                <th>distinguishedName</th>
+                <th>userPrincipalName</th>
+            </tr>
+            <tr>
+                <td>@ViewBag.sAMAccountName</td>
+                <td>@ViewBag.givenName</td>
+                <td>@ViewBag.sn</td>
+                <td>@ViewBag.distinguishedName</td>
+                <td>@ViewBag.userPrincipalName</td>
+            </tr>
+        </table>
+    </div>
+</div>
+}
+
+<hr />
+
+@using (Html.BeginForm("AddUser", "Home", FormMethod.Post))
+{
+<div style="text-align:left">
+    <div style="text-align:right">
+        @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+    </div>
+    <h1>Benutzer hinzufuegen</h1>
+    <table id="t01" style="width:100%">
+        <tr>
+            <th>sAMAccountName</th>
+            <th>givenName</th>
+            <th>sn</th>
+            <th>userPrincipalName</th>
+        </tr>
+        <tr>
+            <td>@Html.Editor("TextBoxAddUserSamAccountName")</td>
+            <td>@Html.Editor("TextBoxAddUsergivenname")</td>
+            <td>@Html.Editor("TextBoxAddUsersn")</td>
+            <td>@Html.Editor("TextBoxAddUseruserPrincipalName")</td>
+        </tr>
+    </table>
+    <button class="btn btn-success" id="btnreloadgrid">New User</button>
+    @ViewBag.StateAddUser
+</div>
+}
+
+<hr />
+
+@using (Html.BeginForm("RemoveUser", "Home", FormMethod.Post))
+{
+<div style="text-align:left">
+    <div style="text-align:right">
+        @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+    </div>
+    <h1>Beutzer loeschen</h1>
+    <div>
+        <table id="t01">
+            <tr>
+                <th>sAMAccountName</th>
+            </tr>
+            <tr>
+                <td>
+                    @Html.Editor("TextBoxDelUserSamAccountName")
+                </td>
+            </tr>
+        </table>
+    </div>
+    <button class="btn btn-success" id="btnreloadgrid">Delete User</button>
+    @ViewBag.StateDeleteUser
+</div>
+}
+

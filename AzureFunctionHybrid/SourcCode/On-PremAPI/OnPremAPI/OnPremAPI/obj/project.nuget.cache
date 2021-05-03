@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "n7THpwGR2/QOMQhxihkW4QychuWdAaAS0s4Rzz3jnG8i2jJjZwytB+DolNG5EZq3HLda4vVwn0J7V8SYLSC9Ug==",
+  "success": true,
+  "projectFilePath": "C:\\VSCode-Workspace\\GitRepos\\Priv\\AzureTemplates\\AzureFunctionHybrid\\SourcCode\\On-PremAPI\\OnPremAPI\\OnPremAPI\\OnPremAPI.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\laglerjo\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\3.0.1\\microsoft.aspnetcore.app.ref.3.0.1.nupkg.sha512",
+    "C:\\Users\\laglerjo\\.nuget\\packages\\microsoft.netcore.app.ref\\3.0.0\\microsoft.netcore.app.ref.3.0.0.nupkg.sha512",
+    "C:\\Users\\laglerjo\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.0.3\\microsoft.netcore.app.host.win-x64.3.0.3.nupkg.sha512",
+    "C:\\Users\\laglerjo\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\3.0.0\\microsoft.windowsdesktop.app.ref.3.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
