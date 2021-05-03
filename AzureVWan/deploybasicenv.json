@@ -2,7 +2,7 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "vWANname": {
+        "v_WAN_Name": {
             "type": "string",
             "metadata": {
                 "description": "Azure Virtual WAN Name"
@@ -206,7 +206,7 @@
         {
             "type": "Microsoft.Network/virtualWans",
             "apiVersion": "2020-05-01",
-            "name": "[parameters('vWANname')]",
+            "name": "[parameters('v_WAN_Name')]",
             "location": "[parameters('hub1_location')]",
             "properties": {
                 "allowVnetToVnetTraffic": true,
@@ -220,12 +220,12 @@
             "name": "[variables('virtual_hub1_cfg').name]",
             "location": "[parameters('hub1_location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                "[resourceId('Microsoft.Network/virtualWans', parameters('v_WAN_Name'))]"
             ],
             "properties": {
                 "addressPrefix": "[variables('virtual_hub1_cfg').addressSpacePrefix]",
                 "virtualWan": {
-                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('v_WAN_Name'))]"
                 }
             }
         },
@@ -235,12 +235,12 @@
             "name": "[variables('virtual_hub2_cfg').name]",
             "location": "[parameters('hub2_location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                "[resourceId('Microsoft.Network/virtualWans', parameters('v_WAN_Name'))]"
             ],
             "properties": {
                 "addressPrefix": "[variables('virtual_hub2_cfg').addressSpacePrefix]",
                 "virtualWan": {
-                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('v_WAN_Name'))]"
                 }
             }
         },
